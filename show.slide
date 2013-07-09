@@ -1,0 +1,120 @@
+Understanding net/http: building a new router for GOV.UK
+
+Nick Stenning
+Government Digital Service
+
+* GOV.UK
+
+Hello, I'm from the government.
+
+.image img/govuk.png 513 888
+
+* GOV.UK
+
+.image img/bankholidays.png 513 888
+
+* GOV.UK
+
+.image img/insidegov.png 513 888
+
+* GOV.UK (behind the scenes)
+
+.image img/behindthescenes.png
+
+* Internal APIs, small pieces
+
+- 34 Rack apps (mostly Rails, some Sinatra)
+- Flask
+- Django
+- Scala/Play
+- Loads of nginx
+- Varnish
+
+HTTP, everywhere.
+
+* Routing
+
+Existing solution leaves something to be desired:
+
+    <%- external_redirects.each do |from, to| -%>
+    location ~ ^<%= from %>/?$ {
+      expires 1d;
+      add_header cache-control 'public';
+      return 302 <%= to %>;
+    }
+    <%- end -%>
+
+    <%- internal_redirects_case_insensitive.each do |from, to| -%>
+    location ~* ^<%= from %>/?$ {
+      expires 1d;
+      add_header cache-control 'public';
+      return 301 <%= to %>;
+    }
+    <%- end -%>
+
+    ...
+
+* Routing
+
+_Ahem..._
+
+    sub vcl_recv {
+      # Routing
+      if (req.url ~ "^/autocomplete(\?.*)?$|^/preload-autocomplete(\?.*)?$|^/sitemap[^/]*.xml(\?.*)?$") {
+        <%= set_backend('search') %>
+      } else if (req.url ~ "^/when-do-the-clocks-change([/?.].*)?$|^/bank-holidays([/?.].*)?$|^/gwyliau-banc([/?.].*)?$") {
+        <%= set_backend('calendars') %>
+      } else if (req.url ~ "^/(<%= @smartanswers.join("|") %>)([/?.].*)?$") {
+        <%= set_backend('smartanswers') %>
+      } else if (req.url ~ "^/stylesheets|^/javascripts|^/images|^/templates|^/favicon\.ico(\?.*)?$|^/humans\.txt(\?.*)?$|^/robots\.txt(\?.*)?$|^/fonts|^/google[a-f0-9]{16}\.html(\?.*)?$|^/apple-touch(.*)?\.png$") {
+        <%= set_backend('static') %>
+      } else if (req.url ~ "^/service-manual([/?.].*)?$|^/designprinciples([/?.].*)?$") {
+        <%= set_backend('designprinciples') %>
+    ...
+      } else if (req.url ~ "^/__canary__$") {
+        <%= set_backend('canary_frontend') %>
+      <%# This matches on any subpath of the slugs, the bare slugs should fall through to content in Frontend %>
+      } else if (req.url ~ "^/pay-foreign-marriage-certificates/(.+)$|^/deposit-foreign-marriage/(.+)$|^/pay-register-death-abroad/(.+)$|^/pay-register-birth-abroad/(.+)$|^/pay-legalisation-post/(.+)$|^/pay-legalisation-drop-off/(.+)$") {
+        <%= set_backend('transaction_wrappers') %>
+      } else {
+        <%= set_backend('frontend') %>
+      }
+    }
+
+* Hello, go
+
+.play support/hello.go
+
+* Hello, HTTP
+
+.play support/hellohttp.go
+
+* Interfaces
+
+Interfaces, interfaces everywhere!
+
+.code support/defs.go /ListenAndServe/,/^}/
+.code support/defs.go /type Handler/,/^}/
+.code support/defs.go /type ResponseWriter/,/^}/
+
+* Hello, HTTP
+
+.play support/hellohttp.go HLhandler
+
+* HandlerFunc and DefaultServeMux
+
+.code support/defs.go /The HandlerFunc/,/^}/
+.code support/defs.go /serverHandler OMIT/,/^}/
+
+* What's a ServeMux?
+
+.play support/servemuxexample.go /START OMIT/,
+
+* What's a ServeMux? (explicit)
+
+.play support/servemuxexplicit.go /START OMIT/,
+
+* If you only remember two things
+
+- Interfaces, interfaces, interfaces
+- Do the hard work to make it simple
