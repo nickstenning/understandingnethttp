@@ -15,10 +15,19 @@ type ResponseWriter interface {
 	WriteHeader(int)
 }
 
-// The HandlerFunc type is an adapter to allow the use of
-// ordinary functions as HTTP handlers.  If f is a function
-// with the appropriate signature, HandlerFunc(f) is a
-// Handler object that calls f.
+type Writer interface {
+	Write([]byte) (int, error)
+}
+
+func HandleFunc(pattern string, handler func(ResponseWriter, *Request)) {
+	DefaultServeMux.HandleFunc(pattern, handler)
+}
+
+// serveMux HandleFunc OMIT
+func (mux *ServeMux) HandleFunc(pattern string, handler func(ResponseWriter, *Request)) {
+	mux.Handle(pattern, HandlerFunc(handler))
+}
+
 type HandlerFunc func(ResponseWriter, *Request)
 
 // ServeHTTP calls f(w, r).
@@ -28,13 +37,9 @@ func (f HandlerFunc) ServeHTTP(w ResponseWriter, r *Request) {
 
 // serverHandler OMIT
 func (sh serverHandler) ServeHTTP(rw ResponseWriter, req *Request) {
-		handler := sh.srv.Handler
-		if handler == nil { // HL
-			handler = DefaultServeMux // HL
-		} // HL
-		if req.RequestURI == "*" && req.Method == "OPTIONS" {
-			handler = globalOptionsHandler{}
-		}
-		handler.ServeHTTP(rw, req)
+	...
+	if handler == nil {
+		handler = DefaultServeMux
 	}
+	...
 }

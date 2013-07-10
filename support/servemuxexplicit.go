@@ -21,7 +21,6 @@ func main() {
 	log.Println("Listening on", listenAddr)
 
 	mux := http.NewServeMux() // HL
-
 	mux.HandleFunc("/hello", sayHello)
 	mux.HandleFunc("/bye", sayGoodbye)
 

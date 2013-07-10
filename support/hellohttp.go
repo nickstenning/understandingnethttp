@@ -2,19 +2,19 @@ package main
 
 import (
 	"fmt"
-	"html"
 	"log"
 	"net/http"
 )
 
 const listenAddr = ":4000"
 
+func sayHello(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, world!")
+}
+
 func main() {
 	log.Println("Listening on", listenAddr)
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { // HLhandler
-		fmt.Fprintf(w, "Hello, %v", html.EscapeString(r.URL.Path))
-	})
-
-	log.Fatal(http.ListenAndServe(listenAddr, nil)) // HLhandler
+	http.HandleFunc("/", sayHello) // HL
+	http.ListenAndServe(listenAddr, nil) // HL
 }

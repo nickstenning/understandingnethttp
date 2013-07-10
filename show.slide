@@ -1,7 +1,10 @@
 Understanding net/http: building a new router for GOV.UK
+19:00 10 Jul 2013
 
 Nick Stenning
 Government Digital Service
+https://whiteink.com/
+@nickstenning
 
 * GOV.UK
 
@@ -36,29 +39,7 @@ HTTP *everywhere*.
 
 * Routing
 
-Existing solution leaves something to be desired...
-
-    <%- external_redirects.each do |from, to| -%>
-    location ~ ^<%= from %>/?$ {
-      expires 1d;
-      add_header cache-control 'public';
-      return 302 <%= to %>;
-    }
-    <%- end -%>
-
-    <%- internal_redirects_case_insensitive.each do |from, to| -%>
-    location ~* ^<%= from %>/?$ {
-      expires 1d;
-      add_header cache-control 'public';
-      return 301 <%= to %>;
-    }
-    <%- end -%>
-
-    ...
-
-* Routing
-
-_Ahem..._
+Existing solution leaves something to be desired... _ahem..._
 
     sub vcl_recv {
       # Routing
@@ -91,13 +72,11 @@ _Ahem..._
 
 .play support/hellohttp.go
 
-* Hello, HTTP
-
-.play support/hellohttp.go HLhandler
-
 * HandlerFunc and DefaultServeMux
 
-.code support/defs.go /The HandlerFunc/,/^}/
+.code support/defs.go /func HandleFunc/,/^}/
+.code support/defs.go /serveMux HandleFunc OMIT/,/^}/
+.code support/defs.go /type HandlerFunc/,/^}/
 .code support/defs.go /serverHandler OMIT/,/^}/
 
 * What's a ServeMux?
@@ -107,6 +86,7 @@ _Ahem..._
 * What's a ServeMux? (explicit)
 
 .play support/servemuxexplicit.go /START OMIT/,
+.code support/defs.go /ListenAndServe/,/^}/
 
 * What's a ServeMux?
 
@@ -124,19 +104,106 @@ _Ahem..._
 
 It's a request router.
 
+* Handler
+
+Everything is a Handler. But what's one of those?
+
+.code support/defs.go /type Handler/,/^}/
+
+Well, anything. Anything that has an appropriate `ServeHTTP` method.
+
 * Turtles all the way down
 
 .image img/turtles.jpg
 
-* Interfaces
+* Interfaces all the way down
 
 Interfaces, interfaces everywhere!
 
 .code support/defs.go /ListenAndServe/,/^}/
 .code support/defs.go /type Handler/,/^}/
 .code support/defs.go /type ResponseWriter/,/^}/
+.code support/defs.go /type Writer/,/^}/
+
+* The start of a better router
+
+The mapping between URLs and backend services can be modelled as a prefix tree
+(or *trie*)
+
+.image img/prefixtrie.png 346 900
+
+* The start of a better router
+
+.code support/trie.go
+
+.link https://github.com/nickstenning/trie
+
+* The routing table is data
+
+Treat routing information as *data*, which can be updated on the fly by
+applications as they deploy. They can register themselves:
+
+    {
+      "id": "whitehall",
+      "url": "http://whitehall.internal"
+    }
+
+And their routes:
+
+    {
+      "type": "exact",
+      "path": "/airport-rights",
+      "application_id": "frontend"
+    }
+    {
+      "type": "prefix",
+      "path": "/government",
+      "application_id": "whitehall"
+    }
+
+* Combining ServeMux and Trie...
+
+    package triemux
+
+.code support/triemux.go /Handle/,/^}/
+.code support/triemux.go /ServeHTTP/,/^}/
+.link https://github.com/nickstenning/router/tree/master/triemux github.com/nickstenning/router/triemux
+
+* A simple TrieMux example
+
+.play support/triemuxexample.go /NewMux/,/ListenAndServe/
+
+* Finally, combining TrieMux and a Database
+
+.code support/router.go /type Router/,/^}/
+.code support/router.go /ServeHTTP/,/^}/
+
+* Atomic reloading
+
+.code support/router.go /ReloadRoutes/,/^}/
+
+* Is it any good?
+
+Small request bodies (lower bound):
+
+.code support/smallrequests.bench
+
+Large request bodies (lower bound):
+
+.code support/largerequests.bench
+
+* The unreasonable effectiveness of Go
+
+This was about three days' work.
+
+- No optimization
+- Dealing with error conditions up front
+- The `defer`, `recover()` pattern
+- Interfaces (is a bare pointer _really_ the right answer?)
+- Composition of simple components (`Trie`, `TrieMux`, `Router`)
 
 * If you only remember two things
 
 - Interfaces, interfaces, interfaces
 - Do the hard work to make it simple
+.link https://www.gov.uk/designprinciples#fourth

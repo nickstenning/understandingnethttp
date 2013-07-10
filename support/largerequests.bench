@@ -1,0 +1,8 @@
+Transactions:         13821 hits
+Availability:         100.00 %
+Elapsed time:         59.98 secs
+Data transferred:     3548.23 MB
+Response time:        0.09 secs
+Transaction rate:     230.43 trans/sec
+Throughput:         59.16 MB/sec // HL
+Concurrency:          19.98
