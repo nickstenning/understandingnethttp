@@ -23,6 +23,8 @@ Hello, I'm from the government.
 
 * Internal APIs, small pieces
 
+Behind the scenes we have:
+
 - 34 Rack apps (mostly Rails, some Sinatra)
 - Flask
 - Django
@@ -30,11 +32,11 @@ Hello, I'm from the government.
 - Loads of nginx
 - Varnish
 
-HTTP, everywhere.
+HTTP *everywhere*.
 
 * Routing
 
-Existing solution leaves something to be desired:
+Existing solution leaves something to be desired...
 
     <%- external_redirects.each do |from, to| -%>
     location ~ ^<%= from %>/?$ {
@@ -89,14 +91,6 @@ _Ahem..._
 
 .play support/hellohttp.go
 
-* Interfaces
-
-Interfaces, interfaces everywhere!
-
-.code support/defs.go /ListenAndServe/,/^}/
-.code support/defs.go /type Handler/,/^}/
-.code support/defs.go /type ResponseWriter/,/^}/
-
 * Hello, HTTP
 
 .play support/hellohttp.go HLhandler
@@ -113,6 +107,34 @@ Interfaces, interfaces everywhere!
 * What's a ServeMux? (explicit)
 
 .play support/servemuxexplicit.go /START OMIT/,
+
+* What's a ServeMux?
+
+`http.ListenAndServe` takes a `Handler`.
+
+.code support/servemux.go /ListenAndServe/,/^}/
+
+`ServeMux` is a type that satisfies the `Handler` interface.
+
+.code support/servemux.go /ServeHTTP/,/^}/
+
+`ServeMux.Handle()` registers other handlers at paths.
+
+.code support/servemux.go /Handle\(/,/^}/
+
+It's a request router.
+
+* Turtles all the way down
+
+.image img/turtles.jpg
+
+* Interfaces
+
+Interfaces, interfaces everywhere!
+
+.code support/defs.go /ListenAndServe/,/^}/
+.code support/defs.go /type Handler/,/^}/
+.code support/defs.go /type ResponseWriter/,/^}/
 
 * If you only remember two things
 
