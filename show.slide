@@ -194,13 +194,14 @@ Large request bodies (lower bound):
 
 * The unreasonable effectiveness of Go
 
-This was about three days' work.
+This was about three days' work, with no attempt at optimization. Contributing
+factors in Go's effectiveness:
 
-- No optimization
 - Dealing with error conditions up front
 - The `defer`, `recover()` pattern
 - Interfaces (is a bare pointer _really_ the right answer?)
 - Composition of simple components (`Trie`, `TrieMux`, `Router`)
+- Rich standard library
 
 * If you only remember two things
 
